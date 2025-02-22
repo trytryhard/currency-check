@@ -3,11 +3,12 @@
 ## working on
 - work on similar output from funcs
 
-
 # about project 
 ## idea
-currency checker via terminal
+currency checker 
 
-##next
-web ui 
-tg bot
+# steps
+## current
+console
+## extra next
+web ui (?) tg bot 

@@ -15,10 +15,18 @@ dictOfSources = {   'cbrf':'https://www.cbr.ru/key-indicators/',
 двбанк - курс на главной странице 
 сбер - в рамках карты
 '''
+# CBRF - res_dict = {CONSTcurrency: {YYYY-MM-DD: float(XX) }
+# BANK - res_dict = {CONSTcurrency: {YYYY-MM-DD: {address/total:{sellBank:XX, buyBank:YY}} } }
 
+def dateFiner(dateVal:str)->str:
+    ''' DD.MM.YYYY -> YYYY-MM-DD '''
+    sep = ['.']
+    if (dateVal[2] in sep) == False or (dateVal[5] in sep) == False or len(dateVal)!=10: return 'WrongDatePattern'
+    for i in sep:
+        if i in dateVal:
+            return '-'.join(dateVal.split(i)[::-1])
 
-
-def parseCbrf(rangeDays = 2)->dict:
+def parseCbrf(rangeDays = 2,CONSTcurrency = 'USD',)->dict:
     '''
     читаем сводную таблицу
     :param rangeDays: 2==2 or 1
@@ -34,27 +42,37 @@ def parseCbrf(rangeDays = 2)->dict:
     htmlVar = driver.page_source
 
     startParam['daysList'] = (
-        ['-'.join(x.split('.')[::-1])
+        [ #'-'.join(x.split('.')[::-1])
+        dateFiner(x)
          for x
-         in re.findall(r"\d{2}\.\d{2}\.\d{4}", htmlVar.split('валюта</td>')[1])[:2:]]
+         in re.findall(r"\d{2}\.\d{2}\.\d{4}", htmlVar.split(f'{CONSTcurrency}')[1])[:2:] ]
+        #split by currency, gettin values close to currency
         if rangeDays == 2
         else
-        [str(datetime.today()).split(' ')[0]]
+        [dateFiner(re.findall(r"\d{2}\.\d{2}\.\d{4}",
+                             re.findall(r'''data-default-value=[\"\'\.0-9]+''',htmlVar)[0])[0]
+                  )]
     )
+
 
     usd = defaultdict(float)
 
+    res_dict = {CONSTcurrency : {  } }
+    for i in startParam['daysList']:
+        res_dict[CONSTcurrency][i] = True
+
+
     for i in range(len(startParam['daysList'])):
         try:
-            usd[f'{i}_'+startParam["daysList"][i]] = (
+            res_dict[CONSTcurrency][startParam['daysList'][i]] =  (
                 float(re.findall(r'\d+,\d+',(htmlVar.split('USD')[1]))[:2:][i]\
                 .replace(',','.'))
             )
         except Exception as err:
-            usd[f'{i}_'+startParam["daysList"][i]] = err
+            res_dict[CONSTcurrency][startParam['daysList'][i]] = err
 
     driver.quit()
-    return usd
+    return res_dict
 
 def parseDvb()->dict:
     # читаем сводную таблицу
@@ -121,6 +139,7 @@ def parseSolid(rangeDays = 2)->dict:
 
 
     return usd
-print(parseSolid(66))
-print(parseSolid(2))
+print(parseCbrf(2))
+print(parseCbrf(66))
+
 
