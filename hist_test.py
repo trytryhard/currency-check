@@ -1,31 +1,31 @@
 from main import *
 
 #CBRF
-print(parseCbrf(rangeDays=666))
+print(parseCbrf(2))
 '''
-res:  defaultdict(<class 'int'>, {"0_курс{'2025-02-18'}": 91.4347})
+{'USD': {'2025-02-22': 88.1676, '2025-02-25': 88.2065}}
 '''
 
-print(parseCbrf(rangeDays=2))
+print(parseCbrf(66))
 '''
-res:  defaultdict(<class 'int'>, {"0_курс{'2025-02-15'}": 90.3099, "1_курс{'2025-02-18'}": 91.4347})
+ {'USD': {'2025-02-25': 88.2065}}
 '''
 
 #dvb
 print(parseDvb())
 '''
-defaultdict(<class 'int'>, {'valid_date': '2025-02-18', 'buy': '92.4', 'sell': '97.4'})
+{'USD': {'2025-02-25': {'DVB~buy': 87.5, 'DVB~sell': 93.4}}}
 '''
 
 #solidbank
 print(parseSolid(66))
 '''
-{'2025-02-20': ['sellBank=', '96.4', 'buyBank=', '93.1']}
+{'USD': {'2025-02-25': {'SLD~buy': 90.0, 'SLD~sell': 94.3}}}
 '''
 
 print(parseSolid(2))
 '''
-{'2025-02-20': ['sellBank=', '96.4', 'buyBank=', '93.1'], '2025-02-19': ['sellBank=', '97.65', 'buyBank=', '94.5']}
+{'USD': {'2025-02-24': {'SLD~buy': 90.7, 'SLD~sell': 94.45}, '2025-02-25': {'SLD~buy': 90.0, 'SLD~sell': 94.3}}}
 '''
 
 #sovkombank

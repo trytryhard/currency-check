@@ -11,20 +11,32 @@ dictOfSources = {   'cbrf':'https://www.cbr.ru/key-indicators/',
                     'dvbank':'https://www.dvbank.ru/',
                     'selenium':'https://www.selenium.dev/selenium/web/web-form.html'}
 '''
-цбр - курс находится в рамках индикаторов
-двбанк - курс на главной странице 
-сбер - в рамках карты
+todo:
+исправить на мягкость поиска денег значения валюты, так как она может быть без точки
 '''
 # CBRF - res_dict = {CONSTcurrency: {YYYY-MM-DD: float(XX) }
-# BANK - res_dict = {CONSTcurrency: {YYYY-MM-DD: {address/total:{sellBank:XX, buyBank:YY}} } }
+# BANK - res_dict = {CONSTcurrency: {YYYY-MM-DD: {name_address/name_total:{sellBank:XX, buyBank:YY}} } }
 
 def dateFiner(dateVal:str)->str:
     ''' DD.MM.YYYY -> YYYY-MM-DD '''
     sep = ['.']
-    if (dateVal[2] in sep) == False or (dateVal[5] in sep) == False or len(dateVal)!=10: return 'WrongDatePattern'
+    if (dateVal[2] in sep) == False or (dateVal[5] in sep) == False or len(dateVal)!=10: return \
+        'Wrong separator position or WrongDatePattern'
     for i in sep:
         if i in dateVal:
             return '-'.join(dateVal.split(i)[::-1])
+
+def currencyFiner(amount:str)->float:
+    if '.' in amount: #'Xx.yy' -> float(.)
+        return float(amount)
+    if ',' in amount: # XXX,YYY" -> float(.)
+        return float(amount.replace(',','.'))
+    try: # xx -> float(xx)
+        return float(amount)
+    except Exception as err:
+        return f'error of amount-pattern / {err}'
+
+    return 'error of amount-pattern'
 
 def parseCbrf(rangeDays = 2,CONSTcurrency = 'USD',)->dict:
     '''
@@ -54,19 +66,14 @@ def parseCbrf(rangeDays = 2,CONSTcurrency = 'USD',)->dict:
                   )]
     )
 
-
-    usd = defaultdict(float)
-
     res_dict = {CONSTcurrency : {  } }
     for i in startParam['daysList']:
         res_dict[CONSTcurrency][i] = True
 
-
     for i in range(len(startParam['daysList'])):
         try:
-            res_dict[CONSTcurrency][startParam['daysList'][i]] =  (
-                float(re.findall(r'\d+,\d+',(htmlVar.split('USD')[1]))[:2:][i]\
-                .replace(',','.'))
+            res_dict[CONSTcurrency][startParam['daysList'][i]] =  currencyFiner(
+                re.findall(r'\d+,\d+',(htmlVar.split('USD')[1]))[:2:][i]
             )
         except Exception as err:
             res_dict[CONSTcurrency][startParam['daysList'][i]] = err
@@ -74,7 +81,8 @@ def parseCbrf(rangeDays = 2,CONSTcurrency = 'USD',)->dict:
     driver.quit()
     return res_dict
 
-def parseDvb()->dict:
+# BANK - res_dict = {CONSTcurrency: {YYYY-MM-DD: {name_address/name_total:{sellBank:XX, buyBank:YY}} } }
+def parseDvb(CONSTcurrency = 'USD')->dict:
     # читаем сводную таблицу
     startParam={'url':'https://www.dvbank.ru/'}
     
@@ -82,30 +90,29 @@ def parseDvb()->dict:
     driver.get(startParam['url'])
     htmlVar = driver.page_source
 
-    usd = defaultdict(float)
-
-    usd['valid_date'] = '-'.join(
+    dateVal = dateFiner(
         re.findall(r"\d{2}\.\d{2}\.\d{4}", htmlVar \
-        .split('exchange-rates__title-note">')[1])[1]\
-        .split('.')[::-1])
+        .split('exchange-rates__title-note">')[1])[0])
+    res_dict = {CONSTcurrency : {dateVal: {}  }}
 
-    for pos,val in enumerate(['buyBank','sellBank']):
+    for pos,val in enumerate(['DVB~buy','DVB~sell']):
         try:
-            # 2 так как тут лежит фантомная таблица ??
-            usd[val] = re.findall(r'\d+\.\d+', htmlVar.split('1$)')[2])[pos]
-        except Exception as err: usd[val]=err
-    return usd
+            res_dict[CONSTcurrency][dateVal][val] = currencyFiner(re.findall(r'\d+\.\d+',
+                                                                             htmlVar.split(CONSTcurrency)[2]\
+                                                                             .split('</td'>)[:3:])[pos])
+        except Exception as err:
+            res_dict[CONSTcurrency][dateVal][val] = err
+    return res_dict
 
-def parseSolid(rangeDays = 2)->dict:
+def parseSolid(rangeDays = 2,CONSTcurrency = 'USD')->dict:
     # 2==2 or 1
-    # читаем графы
-    #startParam = {'url': 'https://solidbank.ru/currency-transactions/'}
-    #driver = webdriver.Chrome()
-    #driver.get(startParam['url'])
+    # api:
+    # https://solidbank.ru/api/v1/currency?action=getdata&city=%D0%A5%D0%90%D0%91%D0%90%D0%A0%D0%9E%D0%92%D0%A1%D0%9A&curname=USD&date_from=24.02.2025&date_to=25.02.2025
+
 
     startParam = {
         'city' : '%D0%A5%D0%90%D0%91%D0%90%D0%A0%D0%9E%D0%92%D0%A1%D0%9A', #city
-        'currency' : 'USD',
+        'currency' : CONSTcurrency,
         'leftDate' : str((datetime.today() - timedelta(days = 1))).split(' ')[0],
         'leftDateDot': '.'.join(str(datetime.today() - timedelta(days = 1)).split(' ')[0].split('-')[::-1]),
         'rightDate' : str(datetime.today()),
@@ -121,25 +128,38 @@ def parseSolid(rangeDays = 2)->dict:
         if rangeDays == 2 else
         [str(datetime.today()).split(' ')[0]])
 
+    startParam['daysList'] = ([startParam['leftDateDot'],startParam['rightDateDot']]
+        if rangeDays == 2 else
+        [startParam['rightDateDot']]
+    )
+
     driver = webdriver.Chrome()
     driver.get(startParam['url'])
     htmlVar = driver.page_source
 
+    res_dict = {CONSTcurrency:{'tempDate':{"SLD~buy":True, "SLD~sell":False}}}
+    for i in startParam['daysList']:
+        res_dict[CONSTcurrency][dateFiner(i)] = {"SLD~buy":True, "SLD~sell":False}
+    del(res_dict[CONSTcurrency]['tempDate'])
 
-    usd = {}
-
-    for i in range(len(startParam['daysList'])):
+    for posDays,valDays in enumerate(startParam['daysList']):
         try:
-            buyBank =  re.findall('\d+\.\d+',htmlVar.split('UF_DATE')[-1-i])[1]
-            sellBank = re.findall('\d+\.\d+',htmlVar.split('UF_DATE')[-1-i])[2]
-            usd[startParam['daysList'][i]] = ['sellBank=',sellBank,'buyBank=',buyBank]
-        except Exception as err: usd[startParam['daysList'][i]] = err
+            buyVal = currencyFiner(
+                re.findall(r'\d+\.\d+|\d+', htmlVar.split(valDays)[1])[0]
+            )
+        except Exception as err: buyVal = err
+        try:
+            sellVal = currencyFiner(
+                re.findall(r'\d+\.\d+|\d+', htmlVar.split(valDays)[1])[1]
+            )
+        except Exception as err: sellVal = err
+        res_dict[CONSTcurrency][dateFiner(valDays)] = {'SLD~buy':buyVal,'SLD~sell':sellVal}
 
+    return res_dict
 
+print("parseSolid(2)",parseSolid(2))
 
+print("parseSolid(66)",parseSolid(66))
 
-    return usd
-print(parseCbrf(2))
-print(parseCbrf(66))
 
 
