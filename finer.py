@@ -1,6 +1,7 @@
 
 def dateFiner(dateVal:str)->str:
     ''' DD.MM.YYYY -> YYYY-MM-DD '''
+    dateVal.strip()
     sep = ['.']
     if (dateVal[2] in sep) == False or (dateVal[5] in sep) == False or len(dateVal)!=10: return \
         'Wrong separator position or WrongDatePattern'

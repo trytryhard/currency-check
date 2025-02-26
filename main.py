@@ -11,8 +11,6 @@ from selenium.webdriver.common.by import By
 '''
 todo:
 chapter X:
-    sovkombank;
-    vtb;
     sberbank;
     ??
 
@@ -22,31 +20,8 @@ chapter XX:
 # CBRF - res_dict = {CONSTcurrency: {YYYY-MM-DD: float(XX) }
 # BANK - res_dict = {CONSTcurrency: {YYYY-MM-DD: {name_address/name_total:{sellBank:XX, buyBank:YY}} } }
 
-'''
-def dateFiner(dateVal:str)->str:
-    ' DD.MM.YYYY -> YYYY-MM-DD '
-    sep = ['.']
-    if (dateVal[2] in sep) == False or (dateVal[5] in sep) == False or len(dateVal)!=10: return \
-        'Wrong separator position or WrongDatePattern'
-    for i in sep:
-        if i in dateVal:
-            return '-'.join(dateVal.split(i)[::-1])
 
-def currencyFiner(amount:str)->float:
-    amount.strip()
-    if '.' in amount: #'Xx.yy' -> float(.)
-        return float(amount)
-    if ',' in amount: # XXX,YYY" -> float(.)
-        return float(amount.replace(',','.'))
-    try: # xx -> float(xx)
-        return float(amount)
-    except Exception as err:
-        return f'error of amount-pattern / {err}'
-
-    return 'error of amount-pattern'
-'''
-
-def parseCbrf(rangeDays = 2,CONSTcurrency = 'USD',)->dict:
+def parseCbrf(rangeDays = 2,CONSTcurrency:str = 'USD',)->dict:
     '''
     читаем сводную таблицу
     :param rangeDays: 2==2 or 1
@@ -90,7 +65,7 @@ def parseCbrf(rangeDays = 2,CONSTcurrency = 'USD',)->dict:
     return res_dict
 
 # BANK - res_dict = {CONSTcurrency: {YYYY-MM-DD: {name_address/name_total:{sellBank:XX, buyBank:YY}} } }
-def parseDvb(CONSTcurrency = 'USD')->dict:
+def parseDvb(CONSTcurrency:str = 'USD')->dict:
     # читаем сводную таблицу
     startParam={'url':'https://www.dvbank.ru/'}
     
@@ -117,7 +92,7 @@ def parseDvb(CONSTcurrency = 'USD')->dict:
             res_dict[CONSTcurrency][dateVal][val] = err
     return res_dict
 
-def parseSolid(rangeDays = 2,CONSTcurrency = 'USD')->dict:
+def parseSolid(rangeDays = 2,CONSTcurrency:str = 'USD')->dict:
     # 2==2 or 1
     # api:
     # https://solidbank.ru/api/v1/currency?action=getdata&city=%D0%A5%D0%90%D0%91%D0%90%D0%A0%D0%9E%D0%92%D0%A1%D0%9A&curname=USD&date_from=24.02.2025&date_to=25.02.2025
@@ -150,9 +125,9 @@ def parseSolid(rangeDays = 2,CONSTcurrency = 'USD')->dict:
     driver.get(startParam['url'])
     htmlVar = driver.page_source
 
-    res_dict = {CONSTcurrency:{'tempDate':{"SLD~buy":True, "SLD~sell":False}}}
+    res_dict = {CONSTcurrency:{'tempDate':{"SLD~buy":None, "SLD~sell":None}}}
     for i in startParam['daysList']:
-        res_dict[CONSTcurrency][dateFiner(i)] = {"SLD~buy":True, "SLD~sell":False}
+        res_dict[CONSTcurrency][dateFiner(i)] = {"SLD~buy":None, "SLD~sell":None}
     del(res_dict[CONSTcurrency]['tempDate'])
 
     for posDays,valDays in enumerate(startParam['daysList']):
@@ -170,7 +145,56 @@ def parseSolid(rangeDays = 2,CONSTcurrency = 'USD')->dict:
 
     return res_dict
 
-print("parseSolid(2)",parseSolid(2))
+def parseVTB(CONSTcurrency:str = 'USD')->dict:
+    '''
+    api: https://www.vtb.ru/api/currencyrates/table?category=1&type=1
+    :param CONSTcurrency:
+    :return: res_dict
+    '''
+    startParam = {
+        'url' : 'https://www.vtb.ru/api/currencyrates/table?category=1&type=1',
+        'currency' : CONSTcurrency
+    }
 
-print("parseSolid(66)",parseSolid(66))
+    driver = webdriver.Chrome()
+    driver.get(startParam['url'])
+    htmlVar = driver.page_source
+    startParam['dateVal'] = re.findall(r'\d+\-\d+\-\d+',htmlVar)[0]
+    res_dict = {CONSTcurrency: {startParam['dateVal']: {"VTB~buy": None, "VTB~sell": None}}}
+
+    for pos,val in enumerate(['VTB~buy','VTB~sell']):
+        try:
+            res_dict[CONSTcurrency][startParam['dateVal']][val] = (
+                currencyFiner(
+                    re.findall(r'\d+\.\d+',htmlVar.split(CONSTcurrency)[1].split('Российский рубль')[1])[pos]
+                )
+            )
+        except Exception as err:
+            res_dict[CONSTcurrency][startParam['dateVal']][val] = err
+
+    return res_dict
+
+def parseSber(CONSTcurrency:str = 'USD') ->dict:
+    startParam = {
+        'url' : 'https://www.sberbank.ru/ru/quotes/currencies?tab=vsp&currency=USD',
+        'currency' : CONSTcurrency,
+        'cookie': {'name':'sbrf.region_id','value':'27'}
+    }
+    print(startParam['cookie'])
+
+    driver = webdriver.Chrome()
+
+    driver.get(startParam['url'])
+    driver.add_cookie({"name": "sbrf.region_set", "value": "true",'domain':'www.sberbank.ru'})
+    driver.add_cookie({"name": "sbrf.region_manual", "value": "true",'domain':'www.sberbank.ru'})
+    driver.add_cookie({"name": "sbrf.region_id", "value": "27",'domain':'www.sberbank.ru'})
+
+
+    #driver.add_cookie(startParam['cookie'])#{"sbrf.region_id":27})
+    htmlVar = driver.page_source
+    print(htmlVar)
+
+print("parseSber()",parseSber())
+
+#print("parseSolid(66)",parseSolid(66))
 
