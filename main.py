@@ -1,24 +1,30 @@
 from selenium import webdriver
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.common.by import By
-
-from collections import defaultdict #для удобства
 from datetime import datetime, timedelta
 import re
+from finer import dateFiner, currencyFiner
 
+'''
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.common.by import By
+'''
 
-dictOfSources = {   'cbrf':'https://www.cbr.ru/key-indicators/',
-                    'dvbank':'https://www.dvbank.ru/',
-                    'selenium':'https://www.selenium.dev/selenium/web/web-form.html'}
 '''
 todo:
-исправить на мягкость поиска денег значения валюты, так как она может быть без точки
+chapter X:
+    sovkombank;
+    vtb;
+    sberbank;
+    ??
+
+chapter XX:
+    aggregate data  
 '''
 # CBRF - res_dict = {CONSTcurrency: {YYYY-MM-DD: float(XX) }
 # BANK - res_dict = {CONSTcurrency: {YYYY-MM-DD: {name_address/name_total:{sellBank:XX, buyBank:YY}} } }
 
+'''
 def dateFiner(dateVal:str)->str:
-    ''' DD.MM.YYYY -> YYYY-MM-DD '''
+    ' DD.MM.YYYY -> YYYY-MM-DD '
     sep = ['.']
     if (dateVal[2] in sep) == False or (dateVal[5] in sep) == False or len(dateVal)!=10: return \
         'Wrong separator position or WrongDatePattern'
@@ -27,6 +33,7 @@ def dateFiner(dateVal:str)->str:
             return '-'.join(dateVal.split(i)[::-1])
 
 def currencyFiner(amount:str)->float:
+    amount.strip()
     if '.' in amount: #'Xx.yy' -> float(.)
         return float(amount)
     if ',' in amount: # XXX,YYY" -> float(.)
@@ -37,6 +44,7 @@ def currencyFiner(amount:str)->float:
         return f'error of amount-pattern / {err}'
 
     return 'error of amount-pattern'
+'''
 
 def parseCbrf(rangeDays = 2,CONSTcurrency = 'USD',)->dict:
     '''
@@ -95,11 +103,16 @@ def parseDvb(CONSTcurrency = 'USD')->dict:
         .split('exchange-rates__title-note">')[1])[0])
     res_dict = {CONSTcurrency : {dateVal: {}  }}
 
+    for num,i in enumerate(htmlVar.split(CONSTcurrency)[2].split('</td>')[1:3:]):
+        print(num,i)
+        print(currencyFiner(i.split('</span>')[1]))
+
     for pos,val in enumerate(['DVB~buy','DVB~sell']):
         try:
-            res_dict[CONSTcurrency][dateVal][val] = currencyFiner(re.findall(r'\d+\.\d+',
-                                                                             htmlVar.split(CONSTcurrency)[2]\
-                                                                             .split('</td'>)[:3:])[pos])
+            res_dict[CONSTcurrency][dateVal][val] = currencyFiner(htmlVar\
+                                                                  .split(CONSTcurrency)[2]\
+                                                                  .split('</td>')[1:3:][pos]\
+                                                                  .split('</span>')[1])
         except Exception as err:
             res_dict[CONSTcurrency][dateVal][val] = err
     return res_dict
@@ -160,6 +173,4 @@ def parseSolid(rangeDays = 2,CONSTcurrency = 'USD')->dict:
 print("parseSolid(2)",parseSolid(2))
 
 print("parseSolid(66)",parseSolid(66))
-
-
 
