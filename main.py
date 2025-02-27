@@ -2,6 +2,7 @@ from selenium import webdriver
 from datetime import datetime, timedelta
 import re
 from finer import dateFiner, currencyFiner
+import time
 
 '''
 from selenium.webdriver.support.ui import Select
@@ -174,25 +175,33 @@ def parseVTB(CONSTcurrency:str = 'USD')->dict:
 
     return res_dict
 
-def parseSber(CONSTcurrency:str = 'USD') ->dict:
+def parseSber(rangeDays = 2,CONSTcurrency:str = 'USD') ->dict:
     startParam = {
-        'url' : 'https://www.sberbank.ru/ru/quotes/currencies?tab=vsp&currency=USD',
+        'url_default' : 'https://www.sberbank.ru/ru/quotes/currencies?tab=vsp&currency=USD',
+        'region':'070',
+        'url':'https://www.sberbank.ru/proxy/services/rates/public/graph?rateType=ERNP-1&isoCode=USD&regionId=070&id=4480470314&dateBeg=1737925200000&dateEnd=1740603600001&segType=TRADITIONAL',
         'currency' : CONSTcurrency,
-        'cookie': {'name':'sbrf.region_id','value':'27'}
+        'rightDate':int(datetime.now().timestamp())*10**3
     }
-    print(startParam['cookie'])
+    #const c = `/proxy/services/rates/public/graph?rateType=${e}&isoCode=${t}&regionId=${r}&id=4480470314&dateBeg=${o}&dateEnd=${i}&segType=TRADITIONAL`;
+    startParam['leftDate'] = startParam['rightDate'] - 24*60*60*10**3
 
-    driver = webdriver.Chrome()
+    startParam['url'] = f'''https://www.sberbank.ru/proxy/services/rates/public/graph?rateType=ERNP-1&isoCode={startParam["currency"]}&regionId={startParam["region"]}&id=4480470314&dateBeg={startParam["leftDate"]}&dateEnd={startParam["rightDate"]}&segType=TRADITIONAL'''
+
+    print(startParam['url'])
+
+    options = webdriver.ChromeOptions()
+    options.add_argument('--ignore-ssl-errors=yes')
+    options.add_argument('--ignore-certificate-errors')
+
+    driver = webdriver.Chrome(options=options)
 
     driver.get(startParam['url'])
-    driver.add_cookie({"name": "sbrf.region_set", "value": "true",'domain':'www.sberbank.ru'})
-    driver.add_cookie({"name": "sbrf.region_manual", "value": "true",'domain':'www.sberbank.ru'})
-    driver.add_cookie({"name": "sbrf.region_id", "value": "27",'domain':'www.sberbank.ru'})
+    time.sleep(2) #5 - works
 
-
-    #driver.add_cookie(startParam['cookie'])#{"sbrf.region_id":27})
     htmlVar = driver.page_source
-    print(htmlVar)
+
+    return {True:True}
 
 print("parseSber()",parseSber())
 
