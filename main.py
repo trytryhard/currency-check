@@ -2,12 +2,9 @@ from selenium import webdriver
 from datetime import datetime, timedelta
 import re
 from finer import dateFiner, currencyFiner
-import time
-
-'''
-from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
-'''
+
 
 '''
 todo:
@@ -183,6 +180,7 @@ def parseSber(rangeDays = 2,CONSTcurrency:str = 'USD') ->dict:
         'currency' : CONSTcurrency,
         'rightDate':int(datetime.now().timestamp())*10**3
     }
+    # TODO : нужно добавить словарь регион-код (достать из хендшейков сбера) ~ для regionId выручит
     #const c = `/proxy/services/rates/public/graph?rateType=${e}&isoCode=${t}&regionId=${r}&id=4480470314&dateBeg=${o}&dateEnd=${i}&segType=TRADITIONAL`;
     startParam['leftDate'] = startParam['rightDate'] - 24*60*60*10**3
 
@@ -197,10 +195,18 @@ def parseSber(rangeDays = 2,CONSTcurrency:str = 'USD') ->dict:
     driver = webdriver.Chrome(options=options)
 
     driver.get(startParam['url'])
-    time.sleep(2) #5 - works
 
+    revealed = driver.find_element(By.CLASS_NAME, "json-formatter-container")
+    driver.find_element(By.CLASS_NAME, "json-formatter-container").click()
+
+    wait = WebDriverWait(driver, timeout=2)
+    wait.until(lambda _ : revealed.is_displayed())
+    '''
+    driver.get(startParam['url'])
+    #time.sleep(2) #5 - works
+    '''
     htmlVar = driver.page_source
-
+    print(htmlVar)
     return {True:True}
 
 print("parseSber()",parseSber())
