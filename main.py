@@ -1,9 +1,10 @@
 from selenium import webdriver
 from datetime import datetime, timedelta
+import time
 import re
+import pandas as pd
+
 from finer import dateFiner, currencyFiner
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.common.by import By
 
 
 '''
@@ -182,7 +183,8 @@ def parseSber(rangeDays = 2,CONSTcurrency:str = 'USD') ->dict:
     }
     # TODO : нужно добавить словарь регион-код (достать из хендшейков сбера) ~ для regionId выручит
     #const c = `/proxy/services/rates/public/graph?rateType=${e}&isoCode=${t}&regionId=${r}&id=4480470314&dateBeg=${o}&dateEnd=${i}&segType=TRADITIONAL`;
-    startParam['leftDate'] = startParam['rightDate'] - 24*60*60*10**3
+
+    startParam['leftDate'] = startParam['rightDate'] - 24*60*60*10**3 if rangeDays == 2 else startParam['rightDate']
 
     startParam['url'] = f'''https://www.sberbank.ru/proxy/services/rates/public/graph?rateType=ERNP-1&isoCode={startParam["currency"]}&regionId={startParam["region"]}&id=4480470314&dateBeg={startParam["leftDate"]}&dateEnd={startParam["rightDate"]}&segType=TRADITIONAL'''
 
@@ -195,21 +197,28 @@ def parseSber(rangeDays = 2,CONSTcurrency:str = 'USD') ->dict:
     driver = webdriver.Chrome(options=options)
 
     driver.get(startParam['url'])
+    time.sleep(6) #5 - works || rework with fine waiter no time.sleep ^_^
 
-    revealed = driver.find_element(By.CLASS_NAME, "json-formatter-container")
-    driver.find_element(By.CLASS_NAME, "json-formatter-container").click()
-
-    wait = WebDriverWait(driver, timeout=2)
-    wait.until(lambda _ : revealed.is_displayed())
-    '''
-    driver.get(startParam['url'])
-    #time.sleep(2) #5 - works
-    '''
     htmlVar = driver.page_source
     print(htmlVar)
-    return {True:True}
+    res_dict = {CONSTcurrency: {'bulk': {"Sber~buy": None, "Sber~sell": None}}}
 
-print("parseSber()",parseSber())
+    for i in htmlVar.split(CONSTcurrency)[1].split('}]}')[::-1]:
+        if re.findall('\d{13}',i)  == []: continue
+        else: dateVal = dateFiner(re.findall('\d{13}',i)[0])
+        sberBuy = currencyFiner(re.findall(r'\d+\.\d+|\d+',re.findall(r'rateBuy":\d+\.\d+|rateBuy":\d+',i)[0])[0])
+        sberSell = currencyFiner(re.findall(r'\d+\.\d+|\d+',re.findall(r'rateSell":\d+\.\d+|rateSell":\d+',i)[0])[0])
+        res_dict[CONSTcurrency][dateVal] = {"Sber~buy":sberBuy,"Sber~sell":sberSell }
+    del res_dict[CONSTcurrency]['bulk']
+    return res_dict
+
+#def getActualPdFrame(d:dict)->pd.DataFrame:
+
+
+#def parseData():
+
+
+print("parseSber()",parseSber(1))
 
 #print("parseSolid(66)",parseSolid(66))
 
