@@ -4,7 +4,7 @@ import time
 import re
 import pandas as pd
 
-from finer import dateFiner, currencyFiner
+from finer import dateFiner, currencyFiner, dateATBfiner
 
 
 '''
@@ -181,14 +181,13 @@ def parseSber(rangeDays = 2,CONSTcurrency:str = 'USD') ->dict:
         'currency' : CONSTcurrency,
         'rightDate':int(datetime.now().timestamp())*10**3
     }
-    # TODO : нужно добавить словарь регион-код (достать из хендшейков сбера) ~ для regionId выручит
-    #const c = `/proxy/services/rates/public/graph?rateType=${e}&isoCode=${t}&regionId=${r}&id=4480470314&dateBeg=${o}&dateEnd=${i}&segType=TRADITIONAL`;
+    # TODO :
+    #  1) нужно добавить словарь регион-код (достать из хендшейков сбера?) ~ для regionid
+    #source: const c = `/proxy/services/rates/public/graph?rateType=${e}&isoCode=${t}&regionId=${r}&id=4480470314&dateBeg=${o}&dateEnd=${i}&segType=TRADITIONAL`;
 
-    startParam['leftDate'] = startParam['rightDate'] - 24*60*60*10**3 if rangeDays == 2 else startParam['rightDate']
+    startParam['leftDate'] = startParam['rightDate'] - 24*60*60*10**3 -1000 #if rangeDays == 2 else startParam['rightDate']
 
     startParam['url'] = f'''https://www.sberbank.ru/proxy/services/rates/public/graph?rateType=ERNP-1&isoCode={startParam["currency"]}&regionId={startParam["region"]}&id=4480470314&dateBeg={startParam["leftDate"]}&dateEnd={startParam["rightDate"]}&segType=TRADITIONAL'''
-
-    print(startParam['url'])
 
     options = webdriver.ChromeOptions()
     options.add_argument('--ignore-ssl-errors=yes')
@@ -200,7 +199,7 @@ def parseSber(rangeDays = 2,CONSTcurrency:str = 'USD') ->dict:
     time.sleep(6) #5 - works || rework with fine waiter no time.sleep ^_^
 
     htmlVar = driver.page_source
-    print(htmlVar)
+
     res_dict = {CONSTcurrency: {'bulk': {"Sber~buy": None, "Sber~sell": None}}}
 
     for i in htmlVar.split(CONSTcurrency)[1].split('}]}')[::-1]:
@@ -210,15 +209,52 @@ def parseSber(rangeDays = 2,CONSTcurrency:str = 'USD') ->dict:
         sberSell = currencyFiner(re.findall(r'\d+\.\d+|\d+',re.findall(r'rateSell":\d+\.\d+|rateSell":\d+',i)[0])[0])
         res_dict[CONSTcurrency][dateVal] = {"Sber~buy":sberBuy,"Sber~sell":sberSell }
     del res_dict[CONSTcurrency]['bulk']
+
+    if len(res_dict[CONSTcurrency].keys()) < 1:
+        return 'res_dict messed_no dates for data'
+
+    if rangeDays == 2:
+        while len(res_dict[CONSTcurrency].keys()) > 2:
+            del res_dict[CONSTcurrency][min(res_dict[CONSTcurrency].keys())]
+    else:
+        while len(res_dict[CONSTcurrency].keys()) > 1:
+            del res_dict[CONSTcurrency][min(res_dict[CONSTcurrency].keys())]
+
     return res_dict
 
-#def getActualPdFrame(d:dict)->pd.DataFrame:
+def parseATB(CONSTcurrency:str = 'USD') -> dict:
+    startParam = {
+        'url' : 'https://www.atb.su/services/exchange/',
+        'currency' : CONSTcurrency
+    }
+    driver = webdriver.Chrome()
+    driver.get(startParam['url'])
+    htmlVar = driver.page_source
+    print(htmlVar)
+
+    startParam['dateVal'] = dateATBfiner(htmlVar)
+
+    res_dict = {CONSTcurrency: {startParam['dateVal']: {"ATB~buy": None, "ATB~sell": None}}}
+
+    #todo: parser atb
+    print(htmlVar.split(CONSTcurrency.lower() + str(1)))
+    print(htmlVar.split(CONSTcurrency.lower()+str(0+1)+'" value="')[1].split('">')[0])
+    '''
+    for pos,val in enumerate(res_dict[CONSTcurrency][startParam['dateVal']]):
+        res_dict[CONSTcurrency][startParam['dateVal']][val] = currencyFiner(htmlVar.split(CONSTcurrency.lower()+str(pos+1)+'" value="')[1].split('">')[0])
+    '''
+    return res_dict
 
 
-#def parseData():
+def getActualPdFrame(d:dict)->pd.DataFrame:
+    pass
 
 
-print("parseSber()",parseSber(1))
+def parseData():
+    pass
+# сделать логику по строгим датам строго начало дня строго конец дня, список сбера
+
+print("parseATB()",parseATB())
 
 #print("parseSolid(66)",parseSolid(66))
 
