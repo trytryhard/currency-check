@@ -1,14 +1,12 @@
 # currency-check
 
 ## working on
-- work on sber parser (?)
+- work on agregation by pandas 
 
 # about project 
-## idea
-currency checker 
+idea : currency checker 
 
 # steps
-## current
 console
 ## extra next
 web ui (?) tg bot 
