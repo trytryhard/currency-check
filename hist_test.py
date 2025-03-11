@@ -38,3 +38,6 @@ print("parseVTB()",parseVTB())
 '''parseVTB() {'USD': {'2025-03-03': {'VTB~buy': 89.65, 'VTB~sell': 93.65}}}'''
 
 #atb
+print("parseATB()",parseATB())
+'''
+parseATB() {'USD': {'2025-03-11': {'ATB~buy': 84.97, 'ATB~sell': 95.81}}}'''

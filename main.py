@@ -6,19 +6,13 @@ import pandas as pd
 
 from finer import dateFiner, currencyFiner, dateATBfiner
 
-
 '''
 todo:
 chapter X:
-    sberbank;
-    ??
-
-chapter XX:
-    aggregate data  
+    aggregate data : pd.DataFrame
 '''
 # CBRF - res_dict = {CONSTcurrency: {YYYY-MM-DD: float(XX) }
 # BANK - res_dict = {CONSTcurrency: {YYYY-MM-DD: {name_address/name_total:{sellBank:XX, buyBank:YY}} } }
-
 
 def parseCbrf(rangeDays = 2,CONSTcurrency:str = 'USD',)->dict:
     '''
@@ -31,7 +25,11 @@ def parseCbrf(rangeDays = 2,CONSTcurrency:str = 'USD',)->dict:
                   else
                   {'url':'https://www.cbr.ru/currency_base/daily/'})
 
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    options.page_load_strategy = 'eager'
+    options.add_argument('--ignore-ssl-errors=yes')
+    options.add_argument('--ignore-certificate-errors')
+    driver = webdriver.Chrome(options=options)
     driver.get(startParam['url'])
     htmlVar = driver.page_source
 
@@ -67,8 +65,12 @@ def parseCbrf(rangeDays = 2,CONSTcurrency:str = 'USD',)->dict:
 def parseDvb(CONSTcurrency:str = 'USD')->dict:
     # читаем сводную таблицу
     startParam={'url':'https://www.dvbank.ru/'}
-    
-    driver = webdriver.Chrome()
+
+    options = webdriver.ChromeOptions()
+    options.page_load_strategy = 'eager'
+    options.add_argument('--ignore-ssl-errors=yes')
+    options.add_argument('--ignore-certificate-errors')
+    driver = webdriver.Chrome(options=options)
     driver.get(startParam['url'])
     htmlVar = driver.page_source
 
@@ -76,10 +78,6 @@ def parseDvb(CONSTcurrency:str = 'USD')->dict:
         re.findall(r"\d{2}\.\d{2}\.\d{4}", htmlVar \
         .split('exchange-rates__title-note">')[1])[0])
     res_dict = {CONSTcurrency : {dateVal: {}  }}
-
-    for num,i in enumerate(htmlVar.split(CONSTcurrency)[2].split('</td>')[1:3:]):
-        print(num,i)
-        print(currencyFiner(i.split('</span>')[1]))
 
     for pos,val in enumerate(['DVB~buy','DVB~sell']):
         try:
@@ -119,8 +117,11 @@ def parseSolid(rangeDays = 2,CONSTcurrency:str = 'USD')->dict:
         if rangeDays == 2 else
         [startParam['rightDateDot']]
     )
-
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    options.page_load_strategy = 'eager'
+    options.add_argument('--ignore-ssl-errors=yes')
+    options.add_argument('--ignore-certificate-errors')
+    driver = webdriver.Chrome(options=options)
     driver.get(startParam['url'])
     htmlVar = driver.page_source
 
@@ -155,8 +156,15 @@ def parseVTB(CONSTcurrency:str = 'USD')->dict:
         'currency' : CONSTcurrency
     }
 
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    options.page_load_strategy = 'eager'
+    options.add_argument('--ignore-ssl-errors=yes')
+    options.add_argument('--ignore-certificate-errors')
+    driver = webdriver.Chrome(options=options)
+
     driver.get(startParam['url'])
+
+
     htmlVar = driver.page_source
     startParam['dateVal'] = re.findall(r'\d+\-\d+\-\d+',htmlVar)[0]
     res_dict = {CONSTcurrency: {startParam['dateVal']: {"VTB~buy": None, "VTB~sell": None}}}
@@ -190,6 +198,9 @@ def parseSber(rangeDays = 2,CONSTcurrency:str = 'USD') ->dict:
     startParam['url'] = f'''https://www.sberbank.ru/proxy/services/rates/public/graph?rateType=ERNP-1&isoCode={startParam["currency"]}&regionId={startParam["region"]}&id=4480470314&dateBeg={startParam["leftDate"]}&dateEnd={startParam["rightDate"]}&segType=TRADITIONAL'''
 
     options = webdriver.ChromeOptions()
+
+    options.page_load_strategy = 'eager'
+
     options.add_argument('--ignore-ssl-errors=yes')
     options.add_argument('--ignore-certificate-errors')
 
@@ -227,34 +238,30 @@ def parseATB(CONSTcurrency:str = 'USD') -> dict:
         'url' : 'https://www.atb.su/services/exchange/',
         'currency' : CONSTcurrency
     }
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    options.page_load_strategy = 'eager'
+    driver = webdriver.Chrome(options=options)
+
     driver.get(startParam['url'])
     htmlVar = driver.page_source
-    print(htmlVar)
 
     startParam['dateVal'] = dateATBfiner(htmlVar)
 
     res_dict = {CONSTcurrency: {startParam['dateVal']: {"ATB~buy": None, "ATB~sell": None}}}
 
-    #todo: parser atb
-    print(htmlVar.split(CONSTcurrency.lower() + str(1)))
-    print(htmlVar.split(CONSTcurrency.lower()+str(0+1)+'" value="')[1].split('">')[0])
-    '''
-    for pos,val in enumerate(res_dict[CONSTcurrency][startParam['dateVal']]):
-        res_dict[CONSTcurrency][startParam['dateVal']][val] = currencyFiner(htmlVar.split(CONSTcurrency.lower()+str(pos+1)+'" value="')[1].split('">')[0])
-    '''
+    for pos, val in enumerate(res_dict[CONSTcurrency][startParam['dateVal']]):
+        res_dict[CONSTcurrency][startParam['dateVal']][val] = currencyFiner(htmlVar.split(f'<div class="currency-table__val">{CONSTcurrency}</div>')[1].split('<div class="currency-table__head">')[1+pos].split('</div>')[1])
+
     return res_dict
 
 
 def getActualPdFrame(d:dict)->pd.DataFrame:
     pass
 
-
 def parseData():
     pass
 # сделать логику по строгим датам строго начало дня строго конец дня, список сбера
 
-print("parseATB()",parseATB())
-
-#print("parseSolid(66)",parseSolid(66))
+print("parseCbrf()",parseCbrf(2))
+print("parseCbrf()",parseCbrf(22))
 
