@@ -87,6 +87,7 @@ def parseDvb(CONSTcurrency:str = 'USD')->dict:
                                                                   .split('</span>')[1])
         except Exception as err:
             res_dict[CONSTcurrency][dateVal][val] = err
+    driver.close()
     return res_dict
 
 def parseSolid(rangeDays = 2,CONSTcurrency:str = 'USD')->dict:
@@ -142,7 +143,7 @@ def parseSolid(rangeDays = 2,CONSTcurrency:str = 'USD')->dict:
             )
         except Exception as err: sellVal = err
         res_dict[CONSTcurrency][dateFiner(valDays)] = {'SLD~buy':buyVal,'SLD~sell':sellVal}
-
+    driver.close()
     return res_dict
 
 def parseVTB(CONSTcurrency:str = 'USD')->dict:
@@ -166,6 +167,7 @@ def parseVTB(CONSTcurrency:str = 'USD')->dict:
 
 
     htmlVar = driver.page_source
+
     startParam['dateVal'] = re.findall(r'\d+\-\d+\-\d+',htmlVar)[0]
     res_dict = {CONSTcurrency: {startParam['dateVal']: {"VTB~buy": None, "VTB~sell": None}}}
 
@@ -178,7 +180,7 @@ def parseVTB(CONSTcurrency:str = 'USD')->dict:
             )
         except Exception as err:
             res_dict[CONSTcurrency][startParam['dateVal']][val] = err
-
+    driver.close()
     return res_dict
 
 def parseSber(rangeDays = 2,CONSTcurrency:str = 'USD') ->dict:
@@ -231,6 +233,7 @@ def parseSber(rangeDays = 2,CONSTcurrency:str = 'USD') ->dict:
         while len(res_dict[CONSTcurrency].keys()) > 1:
             del res_dict[CONSTcurrency][min(res_dict[CONSTcurrency].keys())]
 
+    driver.close()
     return res_dict
 
 def parseATB(CONSTcurrency:str = 'USD') -> dict:
@@ -251,17 +254,48 @@ def parseATB(CONSTcurrency:str = 'USD') -> dict:
 
     for pos, val in enumerate(res_dict[CONSTcurrency][startParam['dateVal']]):
         res_dict[CONSTcurrency][startParam['dateVal']][val] = currencyFiner(htmlVar.split(f'<div class="currency-table__val">{CONSTcurrency}</div>')[1].split('<div class="currency-table__head">')[1+pos].split('</div>')[1])
-
+    driver.close()
     return res_dict
 
 
-def getActualPdFrame(d:dict)->pd.DataFrame:
-    pass
+def getActualPdFrame(res_dict:dict)->pd.DataFrame:
+    argDict = res_dict[list(res_dict.keys())[0]][max(res_dict[list(res_dict.keys())[0]])]
 
-def parseData():
-    pass
-# сделать логику по строгим датам строго начало дня строго конец дня, список сбера
+    dataDict = dict()
+    dataDict['bankName'] = list(argDict.keys())[0].split('~')[0]
 
-print("parseCbrf()",parseCbrf(2))
-print("parseCbrf()",parseCbrf(22))
+    for i in argDict:
+        dataDict[i.split('~')[1]] = [argDict[i]]
+    df = pd.DataFrame.from_dict(dataDict)
+    return df
+
+
+
+def parseData() -> pd.DataFrame:
+    resDf = pd.DataFrame()
+    # outputxlsx = pd.concat([outputxlsx, df], ignore_index=True)
+    try:
+        resDf = pd.concat([resDf, getActualPdFrame(parseDvb())], ignore_index=True)
+    except Exception as e:
+        print('parseDvb get wrong:',e)
+    try:
+        resDf = pd.concat([resDf, getActualPdFrame(parseSolid(rangeDays=1))], ignore_index=True)
+    except Exception as e: print('parseSolid get wrong:', e)
+    try:
+        resDf = pd.concat([resDf, getActualPdFrame(parseVTB())], ignore_index=True)
+    except Exception as e: print('parseVTB get wrong:', e)
+    try:
+        resDf = pd.concat([resDf, getActualPdFrame(parseATB())], ignore_index=True)
+    except Exception as e: print('parseATB get wrong:', e)
+    try:
+        resDf = pd.concat([resDf, getActualPdFrame(parseSber(rangeDays=1))], ignore_index=True)
+    except Exception as e: print('parseSber get wrong:', e)
+
+    return resDf
+
+
+print(parseData())
+
+#print("parseSber(2)",parseSber(2))
+#print("parseSber(22)",parseSber(22))
 

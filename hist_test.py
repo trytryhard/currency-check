@@ -41,3 +41,14 @@ print("parseVTB()",parseVTB())
 print("parseATB()",parseATB())
 '''
 parseATB() {'USD': {'2025-03-11': {'ATB~buy': 84.97, 'ATB~sell': 95.81}}}'''
+
+# total
+print(parseData())
+'''
+  bankName    buy   sell
+0      DVB  88.90  91.00
+1      SLD  88.95  91.50
+2      VTB  87.15  90.75
+3      ATB  83.99  95.05
+4     Sber  83.70  90.00
+'''
