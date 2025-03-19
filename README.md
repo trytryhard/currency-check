@@ -1,7 +1,7 @@
 # currency-check
 
 ## working on
-- work on agregation by pandas 
+- work on rewrite /w classes
 
 # about project 
 idea : currency checker 

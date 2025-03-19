@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import time
 import re
 
-from finer import dateFiner, currencyFiner, dateATBfiner
+from finerOld import dateFiner, currencyFiner, dateATBfiner
 
 # CBRF - res_dict = {CONSTcurrency: {YYYY-MM-DD: float(XX) }
 # BANK - res_dict = {CONSTcurrency: {YYYY-MM-DD: {name_address/name_total:{sellBank:XX, buyBank:YY}} } }
