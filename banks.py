@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, date
 import time
 import re
 
-from finer import  DateFiner #dateFiner, currencyFiner, dateATBfiner
+from finer import  DateFiner, CurrencyFiner
 # need to rewrite finer to classes
 class BankBluePrint:
     url = None
@@ -24,8 +24,7 @@ class BankBluePrint:
 
 class CentralBankOfTheRF:
     url = f'https://www.cbr.ru/currency_base/daily/?UniDbQuery.Posted=True&UniDbQuery.To='
-    actualDate = None
-    currencyInput = 'USD'
+    #currencyInput = 'USD'
     currencyDict = {
         'AUD': ['Australian Dollar', 1],
         'AZN': ['Azerbaijan Manat', 1],
@@ -72,16 +71,22 @@ class CentralBankOfTheRF:
         'CNY': ['Yuan Renminbi', 1]
     }
 
-    def inputCurrCheck(self, currencyInput):
-        if currencyInput not in self.currencyDict:
-            print(f"Ur short currency name - {currencyInput} is not matched with default dict, make sure you write it right."
+    def __init__(self, curr='USD'):
+            self.currencyInput = curr.upper()
+
+    def inputCurrCheck(self):
+        if self.currencyInput not in self.currencyDict:
+            print(f"Ur short currency name - {self.currencyInput} is not matched with default dict, make sure you write it right."
                   f"\nPossible short names:")
             print('"'+'", "'.join([x for x in self.currencyDict.keys()])+'"')
-            return False
+            raise NameError('Wrong currency')
         else:
             return True
 
-    def twoDays(self) -> dict:
+    def twoDays(self)-> dict: # , currencyInput)
+        # make check work again
+        inputCurrCheck(self)
+
         resDict = {self.currencyInput:{'temp':None}}
 
         options = webdriver.ChromeOptions()
@@ -90,29 +95,33 @@ class CentralBankOfTheRF:
         options.add_argument('--ignore-certificate-errors')
         options.add_argument('--headless=new')
         driver = webdriver.Chrome(options=options)
-        driver.get(self.url)
 
+        driver.get(self.url)
         htmlVar = driver.page_source
 
-        dateFiner = DateFiner
+        #dateFiner = DateFiner
         dateValue = htmlVar\
             .split('<button class="datepicker-filter_button" type="button">')[1]\
             .split('</button>')[0]
 
-        #self.actualDate = dateFiner.dotToDashISO(dateValue)
-        print(dateValue)
-
         for i in range(2):
-            #driver.get(self.url+ str(datetime.strptime(self.actualDate, '%Y-%m-%d')-timedelta(days = i)).split(' ')[0]) # нужно положить 21.03.2025 !!
-            print(self.url + dateFiner.dashToDot(datetime.strptime(dateValue, '%d.%m.%Y')-timedelta(days = i), 'dd.mm.yyyy') )
+            dateValue = DateFiner.dashToDot(datetime.strptime(dateValue, '%d.%m.%Y')-timedelta(days = i), 'dd.mm.yyyy')
+            driver.get(self.url + dateValue)
+            htmlVar = driver.page_source
+
+            sellValue = CurrencyFiner.toFloat(re.findall(r'\d+,\d+', htmlVar.split(self.currencyInput)[1].split('</td>')[3])[0])
+
+            resDict[self.currencyInput][DateFiner.dotToDash(dateValue)] = sellValue
+            #print(self.url + dateFiner.dashToDot(datetime.strptime(dateValue, '%d.%m.%Y')-timedelta(days = i), 'dd.mm.yyyy') )
+            #print(dateValue)
 
         # <button class="datepicker-filter_button" type="button">19.03.2025</button>
 
 
         del resDict[self.currencyInput]['temp']
-        pass
+        return resDict
 
-qq = CentralBankOfTheRF()
+qq = CentralBankOfTheRF('')
 #print(qq.inputCurrCheck(currencyInput='QQQ'))
 
 print(qq.twoDays())
