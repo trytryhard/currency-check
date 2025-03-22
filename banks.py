@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, date
 import time
 import re
 
-from finer import dateFiner, currencyFiner, dateATBfiner
+from finer import  DateFiner #dateFiner, currencyFiner, dateATBfiner
 # need to rewrite finer to classes
 class BankBluePrint:
     url = None
@@ -74,7 +74,8 @@ class CentralBankOfTheRF:
 
     def inputCurrCheck(self, currencyInput):
         if currencyInput not in self.currencyDict:
-            print(f"Ur short currency name - {currencyInput} is not matched with default dict, make sure you write it right. \nPossible short names:")
+            print(f"Ur short currency name - {currencyInput} is not matched with default dict, make sure you write it right."
+                  f"\nPossible short names:")
             print('"'+'", "'.join([x for x in self.currencyDict.keys()])+'"')
             return False
         else:
@@ -93,21 +94,27 @@ class CentralBankOfTheRF:
 
         htmlVar = driver.page_source
 
-        self.actualDate = date.fromisoformat(dateFiner(htmlVar\
-                                    .split('<button class="datepicker-filter_button" type="button">')[1]\
-                                    .split('</button>')[0], wantedSep='-'))
+        dateFiner = DateFiner
+        dateValue = htmlVar\
+            .split('<button class="datepicker-filter_button" type="button">')[1]\
+            .split('</button>')[0]
+
+        #self.actualDate = dateFiner.dotToDashISO(dateValue)
+        print(dateValue)
 
         for i in range(2):
-            driver.get(self.url+ (str(self.actualDate) - timedelta(days = 1)).split(' ')[0]) )
-
+            #driver.get(self.url+ str(datetime.strptime(self.actualDate, '%Y-%m-%d')-timedelta(days = i)).split(' ')[0]) # нужно положить 21.03.2025 !!
+            print(self.url + dateFiner.dashToDot(datetime.strptime(dateValue, '%d.%m.%Y')-timedelta(days = i), 'dd.mm.yyyy') )
 
         # <button class="datepicker-filter_button" type="button">19.03.2025</button>
-
 
 
         del resDict[self.currencyInput]['temp']
         pass
 
 qq = CentralBankOfTheRF()
-print(qq.inputCurrCheck(currencyInput='QQQ'))
+#print(qq.inputCurrCheck(currencyInput='QQQ'))
+
+print(qq.twoDays())
+print('final;e')
 
