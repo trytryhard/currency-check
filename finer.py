@@ -1,10 +1,13 @@
 class DateFiner:
 
-    '''def __init__(self,inputDate):
-        self.dateValue:str = inputDate'''
-
     @staticmethod
     def dotToDash(dateValue:str,patternOutput:str='yyyy-mm-dd')->str: # final
+        '''
+        Func to remake Y.M.D or D.M.Y into Y-M-D or D-M-Y
+        ouput fixing by patternOutput-variable
+
+        wrong patternOutput-variable -> return error
+        '''
         dateValue = str(dateValue).strip().split(' ')[0]
 
         if len(dateValue) != 10: return f'Needed len = 10, but given len = {len(dateValue)}'
@@ -25,6 +28,12 @@ class DateFiner:
 
     @staticmethod
     def dashToDot(dateValue:str,patternOutput:str='yyyy.mm.dd')->str: #
+        '''
+        Func to remake Y-M-D or D-M-Y into Y.M.D or D.M.Y
+        ouput fixing by patternOutput-variable
+
+        wrong patternOutput-variable -> return error
+        '''
         dateValue = str(dateValue).strip().split(' ')[0]
 
         if len(dateValue) != 10: return f'Needed len = 10, but given len = {len(dateValue)}'
@@ -45,11 +54,11 @@ class DateFiner:
 
 
 class CurrencyFiner:
-    '''def __init__(self,inputDate):
-        self.currValue:str = inputDate'''
-
     @staticmethod
     def toFloat(currValue:str)->float:
+        '''
+        from str to float
+        '''
         currValue.strip()
         if ',' in currValue: return float(currValue.replace(',','.'))
         if '.' in currValue: return float(currValue)

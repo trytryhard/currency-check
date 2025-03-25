@@ -2,9 +2,9 @@ from selenium import webdriver
 from datetime import datetime, timedelta, date
 import time
 import re
-
 from finer import  DateFiner, CurrencyFiner
 # need to rewrite finer to classes
+
 class BankBluePrint:
     url = None
     currency = None
@@ -24,7 +24,6 @@ class BankBluePrint:
 
 class CentralBankOfTheRF:
     url = f'https://www.cbr.ru/currency_base/daily/?UniDbQuery.Posted=True&UniDbQuery.To='
-    #currencyInput = 'USD'
     currencyDict = {
         'AUD': ['Australian Dollar', 1],
         'AZN': ['Azerbaijan Manat', 1],
@@ -75,17 +74,22 @@ class CentralBankOfTheRF:
             self.currencyInput = curr.upper()
 
     def inputCurrCheck(self):
+        '''
+        compare input currency /w list of possible currencies
+        '''
         if self.currencyInput not in self.currencyDict:
             print(f"Ur short currency name - {self.currencyInput} is not matched with default dict, make sure you write it right."
                   f"\nPossible short names:")
             print('"'+'", "'.join([x for x in self.currencyDict.keys()])+'"')
             raise NameError('Wrong currency')
         else:
-            return True
+            return self.currencyDict[self.currencyInput][-1]
 
-    def twoDays(self)-> dict: # , currencyInput)
-        # make check work again
-        inputCurrCheck(self)
+    def twoDays(self)-> [dict,int]:
+        '''
+        return official rate for two last actual dates and min volume of currency rate
+        '''
+        volume = self.inputCurrCheck()
 
         resDict = {self.currencyInput:{'temp':None}}
 
@@ -99,7 +103,6 @@ class CentralBankOfTheRF:
         driver.get(self.url)
         htmlVar = driver.page_source
 
-        #dateFiner = DateFiner
         dateValue = htmlVar\
             .split('<button class="datepicker-filter_button" type="button">')[1]\
             .split('</button>')[0]
@@ -112,18 +115,64 @@ class CentralBankOfTheRF:
             sellValue = CurrencyFiner.toFloat(re.findall(r'\d+,\d+', htmlVar.split(self.currencyInput)[1].split('</td>')[3])[0])
 
             resDict[self.currencyInput][DateFiner.dotToDash(dateValue)] = sellValue
-            #print(self.url + dateFiner.dashToDot(datetime.strptime(dateValue, '%d.%m.%Y')-timedelta(days = i), 'dd.mm.yyyy') )
-            #print(dateValue)
-
-        # <button class="datepicker-filter_button" type="button">19.03.2025</button>
-
 
         del resDict[self.currencyInput]['temp']
-        return resDict
+        return [resDict, volume]
 
-qq = CentralBankOfTheRF('')
-#print(qq.inputCurrCheck(currencyInput='QQQ'))
+    def oneDay(self)->[dict,int]:
+        '''
+        return actual day info and min volume of currency rate
+        '''
+        oneDayDict = self.twoDays()[0]
+        volumeCurrency = self.twoDays()[1]
 
-print(qq.twoDays())
+        del oneDayDict[self.currencyInput][min(oneDayDict[self.currencyInput].keys())]
+        return [oneDayDict, volumeCurrency]
+
+class SolibBank:
+    '''
+    todo:
+    словарь городов
+    пересечение в валюте(?)
+
+    '''
+
+    currencyDict = {
+        'EUR': ['Euro', 1],
+        'USD':['US Dollar',1],'JPY':['Japanese Yen',100],'CNY':['Chinese Yuan',1],'KRW':['South Korean Won',1000],'HKD':['HongKong Dollar',10]
+    }
+
+    cityDict = {
+        'ХАБАРОВСК':'%D0%A5%D0%90%D0%91%D0%90%D0%A0%D0%9E%D0%92%D0%A1%D0%9A'
+
+    }
+
+    def __init__(self, curr='USD', city = 'Хабаровск'):
+            self.currencyInput = curr.upper()
+            self.cityInput = city.upper()
+
+    %D5 % E0 % E1 % E0 % F0 % EE % E2 % F1 % EA
+
+    https: // solidbank.ru / api / v1 / currency?action = getdata & city =
+    %D0 % A5 % D0 % 90 % D0 % 91 % D0 % 90 % D0 % A0 % D0 % 9E % D0 % 92 % D0 % A1 % D0 % 9(A
+
+    & curname) = GBP & date_from = 24.03
+    .2025 & date_to = 25.03
+    .2025
+
+    def twoDays(self)->[]:
+        curname = self.currencyInput
+        url = f'https://solidbank.ru/api/v1/currency?action=getdata&city={self.cityInput}&curname={self.currencyInput}&date_from={}&date_to={}'
+
+
+
+    def oneDay(self)->[]:
+        pass
+
+'''
+print(CentralBankOfTheRF.twoDays.__doc__)
+print(CentralBankOfTheRF('VND').twoDays())
+print(CentralBankOfTheRF('MDL').oneDay())
+'''
 print('final;e')
 
