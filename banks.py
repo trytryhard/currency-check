@@ -5,6 +5,7 @@ import re
 from finer import  DateFiner, CurrencyFiner
 # need to rewrite finer to classes
 
+#todo: make bluepring bank as container for default vars, like currency, city
 class BankBluePrint:
     url = None
     currency = None
@@ -143,14 +144,29 @@ class SolibBank:
     }
 
     cityDict = {
-        'ХАБАРОВСК':'%D0%A5%D0%90%D0%91%D0%90%D0%A0%D0%9E%D0%92%D0%A1%D0%9A'
-
+        'АЛЬМЕТЬЕВСК': '%D0%90%D0%9B%D0%AC%D0%9C%D0%95%D0%A2%D0%AC%D0%95%D0%92%D0%A1%D0%9A',
+        'БЛАГОВЕЩЕНСК': '%D0%91%D0%9B%D0%90%D0%93%D0%9E%D0%92%D0%95%D0%A9%D0%95%D0%9D%D0%A1%D0%9A',
+        'ВЛАДИВОСТОК': '%D0%92%D0%9B%D0%90%D0%94%D0%98%D0%92%D0%9E%D0%A1%D0%A2%D0%9E%D0%9A',
+        'ЕКАТЕРИНБУРГ': '%D0%95%D0%9A%D0%90%D0%A2%D0%95%D0%A0%D0%98%D0%9D%D0%91%D0%A3%D0%A0%D0%93',
+        'ЕЛИЗОВО': '%D0%95%D0%9B%D0%98%D0%97%D0%9E%D0%92%D0%9E',
+        'ИЖЕВСК': '%D0%98%D0%96%D0%95%D0%92%D0%A1%D0%9A',
+        'ИРКУТСК': '%D0%98%D0%A0%D0%9A%D0%A3%D0%A2%D0%A1%D0%9A',
+        'КАЗАНЬ ': '%D0%9A%D0%90%D0%97%D0%90%D0%9D%D0%AC%20',
+        'КРАСНОЯРСК': '%D0%9A%D0%A0%D0%90%D0%A1%D0%9D%D0%9E%D0%AF%D0%A0%D0%A1%D0%9A',
+        'МОСКВА': '%D0%9C%D0%9E%D0%A1%D0%9A%D0%92%D0%90',
+        'ПЕТРОПАЛОВСК-КАМЧАТСКИЙ': '%D0%9F%D0%95%D0%A2%D0%A0%D0%9E%D0%9F%D0%90%D0%9B%D0%9E%D0%92%D0%A1%D0%9A-%D0%9A%D0%90%D0%9C%D0%A7%D0%90%D0%A2%D0%A1%D0%9A%D0%98%D0%99',
+        'САНКТ-ПЕТЕРБУРГ': '%D0%A1%D0%90%D0%9D%D0%9A%D0%A2-%D0%9F%D0%95%D0%A2%D0%95%D0%A0%D0%91%D0%A3%D0%A0%D0%93',
+        'СЕВЕРО-КУРИЛЬСК': '%D0%A1%D0%95%D0%92%D0%95%D0%A0%D0%9E-%D0%9A%D0%A3%D0%A0%D0%98%D0%9B%D0%AC%D0%A1%D0%9A',
+        'ТУЛА': '%D0%A2%D0%A3%D0%9B%D0%90',
+        'УФА': '%D0%A3%D0%A4%D0%90',
+        'ХАБАРОВСК': '%D0%A5%D0%90%D0%91%D0%90%D0%A0%D0%9E%D0%92%D0%A1%D0%9A',
+        'ЯКУТСК': '%D0%AF%D0%9A%D0%A3%D0%A2%D0%A1%D0%9A',
     }
 
     def __init__(self, curr='USD', city = 'Хабаровск'):
             self.currencyInput = curr.upper()
             self.cityInput = city.upper()
-
+    '''
     %D5 % E0 % E1 % E0 % F0 % EE % E2 % F1 % EA
 
     https: // solidbank.ru / api / v1 / currency?action = getdata & city =
@@ -159,7 +175,7 @@ class SolibBank:
     & curname) = GBP & date_from = 24.03
     .2025 & date_to = 25.03
     .2025
-
+    '''
     def twoDays(self)->[]:
         curname = self.currencyInput
         url = f'https://solidbank.ru/api/v1/currency?action=getdata&city={self.cityInput}&curname={self.currencyInput}&date_from={}&date_to={}'
